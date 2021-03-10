@@ -7,6 +7,8 @@ import mysql.connector
 import cogs.checks as checks
 from discord.ext import commands
 from contextlib import redirect_stdout
+from disputils import BotEmbedPaginator, BotConfirmation, BotMultipleChoice
+
 
 
 class Mod(commands.Cog):
@@ -32,6 +34,27 @@ class Mod(commands.Cog):
         cursor.close()
         db.close()
 
+    async def get_punishments(self, user_id):
+        db = mysql.connector.connect(
+            host="31.170.160.1",
+            user="u985952930_admin",
+            password="Quadadmin123",
+            database="u985952930_drivershub"
+        )
+
+        cursor = db.cursor(buffered=True)
+
+        query = f"""SELECT * FROM discord_punishments WHERE discord_id={user_id}"""
+
+        cursor.execute(query)
+
+        res = cursor.fetchall()
+
+        cursor.close()
+        db.close()
+        return res
+
+
     def cleanup_code(self, content):
         """Automatically removes code blocks from the code."""
         # remove ```py\n```
@@ -42,8 +65,29 @@ class Mod(commands.Cog):
         # remove `foo`
         return content.strip('` \n')
 
-    @commands.command(aliases=['purge', 'c'])
-    @commands.check(checks.isStaff)
+    @commands.command(aliases=['gp', 'getpunishments', 'check'], description="Gets all the users punishments")
+    @commands.check(checks.canWarn)
+    async def punishments(self, ctx, user:discord.Member):
+        res = await self.get_punishments(user.id)
+        embeds = []
+        if not res:
+            await ctx.send(":thumbsdown: User does not have any punishments.", delete_after=20)
+        for p in res:
+            (user_id, punishment_id, punishment_type, reason, moderator_id, datetime) = p
+            desc = f"""
+            Type: {punishment_type.capitalize()}
+            Moderator: {ctx.guild.get_member(moderator_id).mention}
+            Reason: {reason}
+            When: {datetime}
+            Punishment ID: {punishment_id}
+            """
+            embeds.append(discord.Embed(title=f"#{punishment_id} | {user.name}", description=desc, color=discord.Color.random()))
+
+        paginator = BotEmbedPaginator(ctx, embeds)
+        await paginator.run()
+
+    @commands.command(aliases=['purge', 'c'], description="Clears the text chat")
+    @commands.check(checks.canClear)
     async def clear(self, ctx, amount:int):
         if amount > 500 or amount < 0:
             return await ctx.send("Invalid amount. Maximum is 500.")
@@ -52,36 +96,39 @@ class Mod(commands.Cog):
         await ctx.send(f":thumbsup: Deleted **{len(deleted)}/{amount}** possible messages for you.", delete_after=20)
 
 
-    @commands.command()
-    @commands.check(checks.isStaff)
-    async def kick(self, ctx, user:discord.Member, *, reason:str = None):
-        if not reason: reason = "#"
-        await ctx.guild.kick(user, reason="")
+    @commands.command(description="Kicks the mentioned user from the server")
+    @commands.check(checks.canKick)
+    async def kick(self, ctx, user:discord.Member, *, reason:str):
+        await self.add_punishment(user.id, "kick", reason, ctx.author.id)
+        await ctx.guild.kick(user, reason=reason)
         await ctx.send(f":thumbsup: **{user}** kicked!")
 
-    @commands.command()
-    @commands.check(checks.isAdmin)
-    async def ban(self, ctx, user:discord.Member, *, reason:str = None):
-        if not reason: reason = "#"
-        await ctx.guild.ban(user, reason="")
+    @commands.command(description="Bans the mentinoned user from the server")
+    @commands.check(checks.canBan)
+    async def ban(self, ctx, user:discord.Member, *, reason:str):
+        await self.add_punishment(user.id, "ban", reason, ctx.author.id)
+
+        await ctx.guild.ban(user, reason=reason)
         await ctx.send(f":thumbsup: **{user}** banned!")
 
-    @commands.command()
+    @commands.command(description="Shuts down the bot")
     @commands.check(checks.isDonald)
     async def l(self, ctx):
         await self.bot.logout()
     
-    @commands.command()
-    @commands.check(checks.isStaff)
+    @commands.command(description="Warns the mentioned user")
+    @commands.check(checks.canWarn)
     async def warn(self, ctx, user:discord.Member, *, reason:str):
         await self.add_punishment(user.id, "warn", reason, ctx.author.id)
+        if 'Used a blacklisted word(s), message:' in reason:
+            return await ctx.send(f'{user.mention} You have been warned for using blacklisted words!')
+        await ctx.send(f":writing_hand: {user.mention} has been warned for *{reason}*!")
 
-        await ctx.send("punished :thumbsup:")
 
 
-
-    @commands.command(pass_context=True, hidden=True, name='eval', aliases=['announce'])
-    async def _eval(self, ctx, *, body: str):
+    @commands.command(pass_context=True, hidden=True, name='announce', aliases=['eval'], description="Sends an announcement to the Announcement channel.\nDesign your announcement here: [Link](https://cog-creators.github.io/discord-embed-sandbox/)")
+    @commands.check(checks.canAnnounce)
+    async def announce(self, ctx, *, body: str):
         """Evaluates a code"""
 
         if body == "link":

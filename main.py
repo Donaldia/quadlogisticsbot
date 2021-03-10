@@ -14,7 +14,8 @@ bot.remove_command('help')
 exts = [
     "mod",
     "drivershub",
-    "errorhandler"
+    "errorhandler",
+    "events"
 ]
 
 
@@ -27,25 +28,18 @@ async def on_ready():
     print("Bot Online")
     await bot.change_presence(activity=discord.Activity(type=discord.ActivityType.watching, name="!help"))
 
-@bot.command()
+@bot.command(description="Shows this message")
 async def help(ctx):
-    embed = discord.Embed()
+    embed = discord.Embed(title="Available Commands:")
     embed.color = discord.Color.random()
-    embed.description = """
-    **DriversHub Commands:**
-    
-    `!rank` - Shows you your DriversHub Rank.
-    `!rankup` - Ranks up your DriversHub Account.
-    `!sync <username>*` - Syncs your Discord Account with the provided username in the DriversHub
+    cmds = bot.commands
+    for cmd in cmds:
+        if await cmd.can_run(ctx):
+            field_name = f'`!{cmd.name} {cmd.signature}`' if cmd.signature else f'`!{cmd.name}`'
+            embed.add_field(name=field_name, value=cmd.description if cmd.description else 'Lisum Liosum eiau lsoei asiaks', inline=False)
+            #commands_string.append(f'!{cmd.name} {cmd.signature} - {cmd.description}')
 
-    **Moderation Commands:**
-    `!ban <@user>* <reason>` - Bans the user from the Discord Guild.
-    `!clear <amount>*` - Clears an amount of messages from the chat.
-    `!kick <@user>* <reason>` - Kicks the user from the Discord Guild.
-    `!warn <@user>* <reason>*` - Warns the user for breaking the rules.
-    `!announce <code>*` - Announces messages in the announcement channel.
-    """
-    embed.set_footer(text = "Note: Commands arguments with an asterisk ( * ) is required.")
+    embed.set_footer(text=f"{len(cmds)} commands")
     return await ctx.send(embed=embed)
 
 if __name__ == "__main__":
@@ -59,7 +53,7 @@ if __name__ == "__main__":
             print('Failed to load extension {}\n[{}]'.format(ext, e))
 
 
-@bot.command(hidden=True)
+@bot.command(hidden=True, description="Reloads an extension")
 @commands.check(checks.isDonald)
 async def r(ctx, ext):
     try:

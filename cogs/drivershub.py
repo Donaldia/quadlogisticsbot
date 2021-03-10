@@ -9,8 +9,8 @@ class DriversHub(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
 
-    @commands.command()
-    @commands.check(checks.isOwner)
+    @commands.command(description="Creates an invite code for the DriverHub")
+    @commands.check(checks.canInviteCode)
     async def invitecode(self, ctx):
         invite_code = ''.join(random.choices(string.ascii_uppercase + string.digits, k=5))
 
@@ -35,7 +35,7 @@ class DriversHub(commands.Cog):
         await ctx.author.send(embed=embed)
 
 
-    @commands.command()
+    @commands.command(description="Syncs the Discord with your DriversHub account")
     async def sync(self, ctx, *, username:str):
         db = mysql.connector.connect(
             host="31.170.160.1",
@@ -84,7 +84,7 @@ class DriversHub(commands.Cog):
             return await ctx.send(embed=embed)
 
 
-    @commands.command()
+    @commands.command(description="Shows your DriversHub Rank")
     async def rank(self, ctx):
         db = mysql.connector.connect(
             host="31.170.160.1",
@@ -100,7 +100,7 @@ class DriversHub(commands.Cog):
         results = cursor.fetchone()
         if results is None:
             db.close()
-            return await ctx.send(embed=discord.Embed(description="You have not synced your Discord with the Drivers hub.\n\n Use `!sync < your drivershub username >` in order to sync the two.", color=discord.Color.red()))
+            return await ctx.send(embed=discord.Embed(description="You have not synced your Discord with the DriversHub.\n\n Use `!sync <username>` in order to sync the two.", color=discord.Color.red()))
 
         (_id, rank) = results
         embed = discord.Embed()
@@ -124,7 +124,7 @@ class DriversHub(commands.Cog):
         cursor.close()
         db.close()
 
-    @commands.command()
+    @commands.command(description="Ranks up your DriversHub Account")
     async def rankup(self, ctx):
         db = mysql.connector.connect(
             host="31.170.160.1",
@@ -152,7 +152,7 @@ class DriversHub(commands.Cog):
 
         embed = discord.Embed()
 
-        if(rank == "Driver In Training"):
+        if(rank == "Driver in Training"):
             embed.description = "You are Driver in Training. You need to complete all the required trainings to get promoted to a Probationary Driver"
             embed.color = discord.Color.red()
         elif(rank == "Probationary Driver"):
