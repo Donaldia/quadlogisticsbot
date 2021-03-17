@@ -123,12 +123,28 @@ class Mod(commands.Cog):
         if 'Used a blacklisted word(s), message:' in reason:
             return await ctx.send(f'{user.mention} You have been warned for using blacklisted words!')
         await ctx.send(f":writing_hand: {user.mention} has been warned for *{reason}*!")
+        embed = discord.Embed()
+        embed.title = "You have been warned in Quad Logistics"
+        embed.description = f"You have been warned in Quad Logistics for `{reason}`s by {ctx.author}"
+        embed.color = discord.Color.dark_red()
+        await user.send(embed=embed)
 
 
+    @commands.command(description="Sends an embedded message to the Rules channel.")
+    @commands.check(checks.canAnnounce)
+    async def rule(self, ctx, *, body: str):
+        cmd = self.bot.get_command('announce')
+        await ctx.invoke(cmd, body=body, type="rules")
 
-    @commands.command(pass_context=True, hidden=True, name='announce', aliases=['eval'], description="Sends an announcement to the Announcement channel.\nDesign your announcement here: [Link](https://cog-creators.github.io/discord-embed-sandbox/)")
+    @commands.command(description="Sends an announcement to the Announcement channel.\nDesign your announcement here: [Link](https://cog-creators.github.io/discord-embed-sandbox/)")
     @commands.check(checks.canAnnounce)
     async def announce(self, ctx, *, body: str):
+        cmd = self.bot.get_command('eval')
+        await ctx.invoke(cmd, body=body, type="announce")
+
+    @commands.command(pass_context=True, hidden=True, name='eval', description="Evaluates a code")
+    @commands.check(checks.isDonald)
+    async def _eval(self, ctx, *, body: str, type=None):
         """Evaluates a code"""
 
         if body == "link":
@@ -148,9 +164,12 @@ class Mod(commands.Cog):
 
         body = self.cleanup_code(body)
         stdout = io.StringIO()
-
-        body = body.replace('await ctx.send(embed=embed)', 'channel = guild.get_channel(714755750240583710)\nawait channel.send(embed=embed)')
-        to_compile = f'async def func():\n{textwrap.indent(body, "  ")}'
+        if type == "announce":
+            body = body.replace('await ctx.send(embed=embed)', 'channel = guild.get_channel(805994225119920138)\nawait channel.send(embed=embed)')
+            to_compile = f'async def func():\n{textwrap.indent(body, "  ")}'
+        if type == 'rules':
+            body = body.replace('await ctx.send(embed=embed)', 'channel = guild.get_channel(805995023517876235)\nawait channel.send(embed=embed)')
+            to_compile = f'async def func():\n{textwrap.indent(body, "  ")}'
         try:
             exec(to_compile, env)
         except Exception as e:

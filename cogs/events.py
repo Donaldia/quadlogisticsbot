@@ -8,8 +8,9 @@ from discord.ext import commands
 class Events(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
-        self.chatlog_channel = 766214626688892928
+        self.chatlog_channel = 819231310543323157
         self.blacklisted_words = ['nigga','nigger','n1gga','n1gg4','nigg4','n1gger','n1gg3r','nigg3r','fag', 'faggot', 'f4g', 'f4ggot','f4gg0t', 'fagg0t','pornhub.com','xnxx.com','redtube.com']
+        wordfilter.clear_list()
         wordfilter.add_words(self.blacklisted_words)
 
     async def log_message(self, message):
@@ -46,6 +47,7 @@ class Events(commands.Cog):
         embed.add_field(name="Message Channel", value=message.channel.mention, inline=False)
         embed.add_field(name="Message:", value=f"```{message.content}```", inline=False)
         
+
         await channel.send(embed=embed)
         await self.log_message(message)
 

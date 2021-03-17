@@ -22,6 +22,10 @@ exts = [
 with open('./config.json') as f:
     bot.config = json.load(f)
 
+@bot.check
+async def globally_block_dms(ctx):
+    if ctx.command.name == 'sync' or ctx.command.name == "resetpassword" or ctx.author.id == 289890066514575360: return True
+    return ctx.guild is not None
 
 @bot.event
 async def on_ready():
@@ -36,10 +40,10 @@ async def help(ctx):
     for cmd in cmds:
         if await cmd.can_run(ctx):
             field_name = f'`!{cmd.name} {cmd.signature}`' if cmd.signature else f'`!{cmd.name}`'
-            embed.add_field(name=field_name, value=cmd.description if cmd.description else 'Lisum Liosum eiau lsoei asiaks', inline=False)
-            #commands_string.append(f'!{cmd.name} {cmd.signature} - {cmd.description}')
+            embed.add_field(name=field_name, value=cmd.description if cmd.description else 'No decription available', inline=False)
+            
 
-    embed.set_footer(text=f"{len(cmds)} commands")
+    embed.set_footer(text=f"{len(embed.fields)} commands")
     return await ctx.send(embed=embed)
 
 if __name__ == "__main__":
@@ -48,9 +52,8 @@ if __name__ == "__main__":
         try:
             bot.load_extension('cogs.'+ext)
             print("Loaded " + ext)
-        except Exception as e:
-            exc = '{}: {}'.format(type(e).__name__, e)
-            print('Failed to load extension {}\n[{}]'.format(ext, e))
+        except Exception as e: exc = '{}: {}'.format(type(e).__name__, e) print('Failed to load extension {}\n[{}]'.format(ext, e))
+
 
 
 @bot.command(hidden=True, description="Reloads an extension")
